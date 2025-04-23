@@ -26,12 +26,3 @@ jobs:
         shell: bash
         run: |
           node main.js
-
-  keepalive:
-    name: Keepalive Workflow
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: gautamkrishnar/keepalive-workflow@v2
