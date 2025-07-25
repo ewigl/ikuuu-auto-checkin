@@ -1,20 +1,37 @@
 ## iKuuu 定时自动签到
 
-> 利用 Github Actions 定时任务实现自动签到。
+> 利用 Github Actions 实现自动签到，支持多账户，支持 Telegram 通知。
 
 [![IKUUU-Auto-Checkin](https://github.com/ewigl/ikuuu-auto-checkin/actions/workflows/Checkin.yml/badge.svg)](https://github.com/ewigl/ikuuu-auto-checkin/actions/workflows/Checkin.yml)
 
-### 环境变量
+### 仓库变量
 
-- **Environments**: `IKUUU`
+- **ACCOUNTS**：账户信息，**多个**账户配置示例如下。推荐使用 [JSON 格式化工具](https://jsoneditoronline.org/) 进行编辑以避免格式出错。
 
-- **Secrets**:`EMAIL`, `PASSWD`, `HOST`（可选）
+  ```json
+  [
+    {
+      "name": "这里填写账户备注",
+      "email": "这里填写邮箱",
+      "passwd": "这里填写密码"
+    },
+    {
+      "name": "这里填写账户备注",
+      "email": "这里填写邮箱",
+      "passwd": "这里填写密码"
+    }
+  ]
+  ```
+
+- **HOST**: （可选）iKuuu 的域名，不设置时默认为 `ikuuu.one`。
+- **TELEGRAM_TOKEN**: （可选）Telegram 通知的 Bot Token。
+- **TELEGRAM_TO**: （可选）Telegram 通知的 Chat ID。
 
 ### 使用方法
 
 1. Fork 此仓库。
-2. 在 fork 后的仓库中启用 Workflows。
-3. 配置环境变量。
+2. 在 fork 后的仓库中启用 Actions。
+3. 配置仓库变量。
 
 详细文档: https://ewigl.github.io/notes/posts/programming/github-actions/
 

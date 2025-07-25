@@ -1,97 +1,138 @@
+// 不直接使用 Cookie 是因为 Cookie 过期时间较短。
+
+import { appendFileSync } from "fs";
+
 const host = process.env.HOST || "ikuuu.one";
 
-const protocolPrefix = "https://";
-const logInUrl = `${protocolPrefix}${host}/auth/login`;
-const checkInUrl = `${protocolPrefix}${host}/user/checkin`;
+const logInUrl = `https://${host}/auth/login`;
+const checkInUrl = `https://${host}/user/checkin`;
 
-function parseCookie(rawCookie) {
-  let cookieSets = rawCookie.split("path=/,");
+// 格式化 Cookie
+function formatCookie(rawCookieArray) {
+  const cookiePairs = new Map();
 
-  // 用于存储去重后的Cookie键值对
-  const cookies = {};
-
-  // 遍历 cookieSets 数组
-  cookieSets.forEach((cookie) => {
-    // 利用正则表达式提取字段名和字段值
-    const match = cookie.match(/^([^=]+)=(.*?);/);
+  for (const cookieString of rawCookieArray) {
+    const match = cookieString.match(/^\s*([^=]+)=([^;]*)/);
     if (match) {
-      const fieldName = match[1].trim();
-      let fieldValue = match[2].trim();
-
-      // 对字段值进行解码
-      fieldValue = decodeURIComponent(fieldValue);
-
-      // 存储到cookies对象中（确保每个字段只有一个值，即去重）
-      if (!cookies[fieldName]) {
-        cookies[fieldName] = fieldValue;
-      }
+      cookiePairs.set(match[1].trim(), match[2].trim());
     }
-  });
+  }
 
-  return cookies;
-}
-
-function generateCookieStr(cookieObject) {
-  // 将对象转换为Cookie格式的字符串
-  return Object.entries(cookieObject)
-    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+  return Array.from(cookiePairs)
+    .map(([key, value]) => `${key}=${value}`)
     .join("; ");
 }
 
-async function logIn(email, passwd) {
-  console.log("Loging in...");
+// 登录获取 Cookie
+async function logIn(account) {
+  console.log(`${account.name}: 登录中...`);
 
-  let formData = new FormData();
+  const formData = new FormData();
   formData.append("host", host);
-  formData.append("email", email);
-  formData.append("passwd", passwd);
+  formData.append("email", account.email);
+  formData.append("passwd", account.passwd);
   formData.append("code", "");
   formData.append("remember_me", "off");
 
-  let response = await fetch(logInUrl, {
+  const response = await fetch(logInUrl, {
     method: "POST",
     body: formData,
   });
 
-  let rawCookie = response.headers.get("set-cookie");
+  if (!response.ok) {
+    throw new Error(`网络请求出错 - ${response.status}`);
+  }
 
-  let responseJson = await response.json();
+  const responseJson = await response.json();
 
-  responseJson && console.log(responseJson.msg);
+  if (responseJson.ret !== 1) {
+    throw new Error(`登录失败: ${responseJson.msg}`);
+  } else {
+    console.log(`${account.name}: ${responseJson.msg}`);
+  }
 
-  return parseCookie(rawCookie);
+  let rawCookieArray = response.headers.getSetCookie();
+  if (!rawCookieArray || rawCookieArray.length === 0) {
+    throw new Error(`获取 Cookie 失败`);
+  }
+
+  return { ...account, cookie: formatCookie(rawCookieArray) };
 }
 
-function checkIn(cookie) {
-  fetch(checkInUrl, {
+// 签到
+async function checkIn(account) {
+  const response = await fetch(checkInUrl, {
     method: "POST",
     headers: {
-      Cookie: generateCookieStr(cookie),
+      Cookie: account.cookie,
     },
-  })
-    .then((res) => res.json())
-    .then((resJson) => {
-      if (resJson) {
-        console.log(resJson.msg);
-      }
-    });
+  });
+
+  if (!response.ok) {
+    throw new Error(`网络请求出错 - ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log(`${account.name}: ${data.msg}`);
+
+  return data.msg;
 }
 
-async function main() {
-  let email;
-  let passwd;
+// 处理
+async function processSingleAccount(account) {
+  const cookedAccount = await logIn(account);
 
-  if (process.env.EMAIL && process.env.PASSWD) {
-    email = process.env.EMAIL;
-    passwd = process.env.PASSWD;
-  } else {
-    console.log("ENV ERROR");
+  const checkInResult = await checkIn(cookedAccount);
+
+  return checkInResult;
+}
+
+function setGitHubOutput(name, value) {
+  appendFileSync(process.env.GITHUB_OUTPUT, `${name}<<EOF\n${value}\nEOF\n`);
+}
+
+// 入口
+async function main() {
+  let accounts;
+
+  try {
+    if (!process.env.ACCOUNTS) {
+      throw new Error("❌ 未配置账户信息。");
+    }
+
+    accounts = JSON.parse(process.env.ACCOUNTS);
+  } catch (error) {
+    const message = `❌ ${
+      error.message.includes("JSON") ? "账户信息配置格式错误。" : error.message
+    }`;
+    console.error(message);
+    setGitHubOutput("result", message);
     process.exit(1);
   }
 
-  let cookie = await logIn(email, passwd);
+  const allPromises = accounts.map((account) => processSingleAccount(account));
+  const results = await Promise.allSettled(allPromises);
 
-  checkIn(cookie);
+  const msgHeader = "\n======== 签到结果 ========\n\n";
+  console.log(msgHeader);
+
+  const resultLines = results.map((result, index) => {
+    const accountName = accounts[index].name;
+
+    const isSuccess = result.status === "fulfilled";
+    const icon = isSuccess ? "✅" : "❌";
+    const message = isSuccess ? result.value : result.reason.message;
+
+    const line = `${accountName}: ${icon} ${message}`;
+
+    isSuccess ? console.log(line) : console.error(line);
+
+    return line;
+  });
+
+  const resultMsg = resultLines.join("\n");
+
+  setGitHubOutput("result", resultMsg);
 }
 
 main();
