@@ -2,7 +2,7 @@
 
 import { appendFileSync } from "fs";
 
-const host = process.env.HOST || "ikuuu.one";
+const host = process.env.HOST || "ikuuu.de";
 
 const logInUrl = `https://${host}/auth/login`;
 const checkInUrl = `https://${host}/user/checkin`;
@@ -102,9 +102,8 @@ async function main() {
 
     accounts = JSON.parse(process.env.ACCOUNTS);
   } catch (error) {
-    const message = `❌ ${
-      error.message.includes("JSON") ? "账户信息配置格式错误。" : error.message
-    }`;
+    const message = `❌ ${error.message.includes("JSON") ? "账户信息配置格式错误。" : error.message
+      }`;
     console.error(message);
     setGitHubOutput("result", message);
     process.exit(1);
