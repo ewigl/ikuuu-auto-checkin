@@ -4,7 +4,7 @@
 
 [![IKUUU-Auto-Checkin](https://github.com/ewigl/ikuuu-auto-checkin/actions/workflows/Checkin.yml/badge.svg)](https://github.com/ewigl/ikuuu-auto-checkin/actions/workflows/Checkin.yml)
 
-### 仓库变量
+### 仓库 Secrets
 
 - **ACCOUNTS**：账户信息，**多个**账户配置示例如下。推荐使用 [JSON 格式化工具](https://jsoneditoronline.org/) 进行编辑以避免格式出错。
 
@@ -23,15 +23,18 @@
   ]
   ```
 
-- **HOST**: （可选）iKuuu 的域名，不设置时默认为 `ikuuu.one`。
 - **TELEGRAM_TOKEN**: （可选）Telegram 通知的 Bot Token。
 - **TELEGRAM_TO**: （可选）Telegram 通知的 Chat ID。
+
+### 仓库 Variables
+
+- **HOST**: （可选）iKuuu 的域名，不设置时默认为 `ikuuu.de`。
 
 ### 使用方法
 
 1. Fork 此仓库。
 2. 在 fork 后的仓库中启用 Actions。
-3. 配置仓库变量。
+3. 配置仓库 Secrets 和 Variables。
 
 详细文档: https://ewigl.github.io/notes/posts/programming/github-actions/
 
