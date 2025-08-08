@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ACCOUNTS: ${{ secrets.ACCOUNTS }}
-      HOST: ${{ secrets.HOST }}
+      HOST: ${{ secrets.HOST || vars.HOST }}
       TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
       TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
 
